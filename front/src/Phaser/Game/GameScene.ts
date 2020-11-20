@@ -191,6 +191,7 @@ export class GameScene extends ResizableScene implements CenterListener {
                 message: file.src
             });
         });
+        this.load.scenePlugin('AnimatedTiles', 'resources/plugins/AnimatedTiles.js', 'animatedTiles', 'animatedTiles');
         this.load.on('filecomplete-tilemapJSON-'+this.MapUrlFile, (key: string, type: string, data: unknown) => {
             this.onMapLoad(data);
         });
@@ -379,6 +380,8 @@ export class GameScene extends ResizableScene implements CenterListener {
         this.removeAllRemotePlayers(); //cleanup the list  of remote players in case the scene was rebooted
 
         this.initCamera();
+
+        (this as any).animatedTiles.init(this.Map); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         this.initCirclesCanvas();
 
