@@ -59,6 +59,7 @@ import {ConsoleGlobalMessageManager} from "../../Administration/ConsoleGlobalMes
 import {ResizableScene} from "../Login/ResizableScene";
 import {Room} from "../../Connexion/Room";
 import {jitsiFactory} from "../../WebRtc/JitsiFactory";
+import {bbbFactory} from "../../WebRtc/BbbFactory";
 import {urlManager} from "../../Url/UrlManager";
 import {audioManager} from "../../WebRtc/AudioManager";
 import {PresentationModeIcon} from "../Components/PresentationModeIcon";
@@ -661,6 +662,26 @@ export class GameScene extends ResizableScene implements CenterListener {
                 }
             }
         })
+        this.gameMap.onPropertyChange('bbbRoom', (newValue, oldValue, allProps) => {
+            if (newValue === undefined) {
+                layoutManager.removeActionButton('bbbRoom', this.userInputManager);
+                this.stopBbb();
+            }else{
+                const openBbbRoomFunction = () => {
+                    this.startBbb(newValue as string);
+                    layoutManager.removeActionButton('bbbRoom', this.userInputManager);
+                }
+
+                const bbbTriggerValue = allProps.get(TRIGGER_JITSI_PROPERTIES);
+                if(bbbTriggerValue && bbbTriggerValue === ON_ACTION_TRIGGER_BUTTON) {
+                    layoutManager.addActionButton('bbbRoom', 'Click on SPACE to enter in bbb meet room', () => {
+                        openBbbRoomFunction();
+                    }, this.userInputManager);
+                }else{
+                    openBbbRoomFunction();
+                }
+            }
+        })
         this.gameMap.onPropertyChange('silent', (newValue, oldValue) => {
             if (newValue === undefined || newValue === false || newValue === '') {
                 this.connection.setSilent(false);
@@ -1219,5 +1240,23 @@ export class GameScene extends ResizableScene implements CenterListener {
         mediaManager.removeTriggerCloseJitsiFrameButton('close-jisi');
     }
 
+    public startBbb(roomName: string, jwt?: string): void {
+        bbbFactory.start(roomName, this.playerName, jwt);
+        this.connection.setSilent(true);
+        mediaManager.hideGameOverlay();
+
+        //permit to stop bbb when user close iframe
+        mediaManager.addTriggerCloseBbbFrameButton('close-bbb',() => {
+            this.stopBbb();
+        });
+    }
+
+    public stopBbb(): void {
+        this.connection.setSilent(false);
+        bbbFactory.stop();
+        mediaManager.showGameOverlay();
+
+        mediaManager.removeTriggerCloseBbbFrameButton('close-bbb');
+    }
 
 }
