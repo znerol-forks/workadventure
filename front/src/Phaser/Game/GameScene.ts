@@ -518,6 +518,13 @@ export class GameScene extends ResizableScene implements CenterListener {
                 this.startJitsi(room, jwt);
             });
 
+            /**
+             * Triggered when we receive the URL to join a meeting on BBB
+             */
+            this.connection.onBBBMeetingClientURL((meetingId: string, clientURL: string) => {
+                this.startBBBMeeting(meetingId, clientURL);
+            });
+
             // When connection is performed, let's connect SimplePeer
             this.simplePeer = new SimplePeer(this.connection, !this.room.isPublic, this.playerName);
             this.GlobalMessageManager = new GlobalMessageManager(this.connection);
@@ -635,6 +642,14 @@ export class GameScene extends ResizableScene implements CenterListener {
                 }
             }
         });
+	this.gameMap.onPropertyChange('bbbMeeting', (newValue, oldValue, allProps) => {
+            if (newValue === undefined) {
+                layoutManager.removeActionButton('bbbMeeting', this.userInputManager);
+                this.stopBBBMeeting();
+            } else {
+                this.connection.emitJoinBBBMeeting(newValue as string);
+            }
+	});
         this.gameMap.onPropertyChange('jitsiRoom', (newValue, oldValue, allProps) => {
             if (newValue === undefined) {
                 layoutManager.removeActionButton('jitsiRoom', this.userInputManager);
@@ -1219,5 +1234,18 @@ export class GameScene extends ResizableScene implements CenterListener {
         mediaManager.removeTriggerCloseJitsiFrameButton('close-jisi');
     }
 
+    public startBBBMeeting(meetingId: string, clientURL: string): void {
+        this.connection.setSilent(true);
+        mediaManager.hideGameOverlay();
+        coWebsiteManager.loadCoWebsite(clientURL, iframe => {
+            iframe.allow = `microphone ${clientURL}; camera ${clientURL}`;
+        });
+    }
+
+    public stopBBBMeeting(): void {
+        coWebsiteManager.closeCoWebsite();
+        mediaManager.showGameOverlay();
+        this.connection.setSilent(false);
+    }
 
 }

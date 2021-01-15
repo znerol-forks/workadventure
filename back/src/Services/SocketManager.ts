@@ -25,6 +25,8 @@ import {
     WebRtcStartMessage,
     QueryJitsiJwtMessage,
     SendJitsiJwtMessage,
+    JoinBBBMeetingMessage,
+    BBBMeetingClientURLMessage,
     SendUserMessage,
     JoinRoomMessage,
     Zone as ProtoZone,
@@ -43,6 +45,9 @@ import {PositionInterface} from "../Model/PositionInterface";
 import {adminApi, CharacterTexture, FetchMemberDataByUuidResponse} from "./AdminApi";
 import Jwt from "jsonwebtoken";
 import {JITSI_URL} from "../Enum/EnvironmentVariable";
+const Bbb = require("bigbluebutton-js"); // @types/bigbluebutton-js doesn't exist yet
+import {BBB_URL, BBB_SECRET} from "../Enum/EnvironmentVariable";
+const hashjs = require('hash.js'); // @types/hash.js doesn't exist yet
 import {clientEventsEmitter} from "./ClientEventsEmitter";
 import {gaugeManager} from "./GaugeManager";
 import {AdminSocket, ZoneSocket} from "../RoomManager";
@@ -622,6 +627,46 @@ export class SocketManager {
 
         const serverToClientMessage = new ServerToClientMessage();
         serverToClientMessage.setSendjitsijwtmessage(sendJitsiJwtMessage);
+
+        user.socket.write(serverToClientMessage);
+    }
+
+    public async handleJoinBBBMeetingMessage(user: User, joinBBBMeetingMessage: JoinBBBMeetingMessage) {
+        const meetingId = joinBBBMeetingMessage.getMeetingid();
+
+        const api = Bbb.api(BBB_URL, BBB_SECRET);
+        const attendeePW = hashjs.sha256().update(`attende-${meetingId}-${BBB_SECRET}`).digest('hex');
+        const moderatorPW = hashjs.sha256().update(`moderator-${meetingId}-${BBB_SECRET}`).digest('hex')
+
+        // This is idempotent, so we call it on each join in order to be sure that the meeting exists.
+        const meetingName = meetingId;
+        await Bbb.http(api.administration.create(meetingId, meetingId, { attendeePW, moderatorPW }));
+
+        // XXX: figure out how to know if the user has admin status and use the moderatorPW
+        // in that case
+        const joinResponse = await Bbb.http(api.administration.join(user.name, meetingId, moderatorPW, {
+            redirect: false,
+            userID: user.id,
+            joinViaHtml5: true,
+            "userdata-bbb_auto_join_audio": "true",
+            "userdata-bbb_listen_only_mode": "false",
+            "userdata-bbb_mirror_own_webcam": "true",
+            "userdata-bbb_skip_check_audio": "true",
+            "userdata-bbb_skip_video_preview": "true",
+            "userdata-bbb_auto_share_webcam": "true",
+            "userdata-bbb_auto_swap_layout": "true",
+            "userdata-bbb_show_participants_on_login": "false",
+            "userdata-bbb_show_public_chat_on_login": "true",
+            "userdata-bbb_custom_style": ":root{--loader-bg:#f00;}.overlay--1aTlbi{background-color:#f00!important;}body{background-color:#f00!important;}"
+        }));
+        const clientURL = joinResponse.url;
+
+        const bbbMeetingClientURLMessage = new BBBMeetingClientURLMessage();
+        bbbMeetingClientURLMessage.setMeetingid(meetingId);
+        bbbMeetingClientURLMessage.setClienturl(clientURL);
+
+        const serverToClientMessage = new ServerToClientMessage();
+        serverToClientMessage.setBbbmeetingclienturlmessage(bbbMeetingClientURLMessage);
 
         user.socket.write(serverToClientMessage);
     }
