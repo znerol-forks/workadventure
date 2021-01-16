@@ -633,6 +633,7 @@ export class SocketManager {
 
     public async handleJoinBBBMeetingMessage(user: User, joinBBBMeetingMessage: JoinBBBMeetingMessage) {
         const meetingId = joinBBBMeetingMessage.getMeetingid();
+        const userdata = joinBBBMeetingMessage.getUserdataMap();
 
         const api = Bbb.api(BBB_URL, BBB_SECRET);
         const attendeePW = hashjs.sha256().update(`attende-${meetingId}-${BBB_SECRET}`).digest('hex');
@@ -642,22 +643,20 @@ export class SocketManager {
         const meetingName = meetingId;
         await Bbb.http(api.administration.create(meetingId, meetingId, { attendeePW, moderatorPW }));
 
+        // Add userdata properties sent by the client.
+        const joinParams: Record<string, string> = {};
+        userdata.forEach((value, key) => {
+            if (key.startsWith('userdata-bbb_')) {
+                joinParams[key] = value;
+            }
+        });
+
         // XXX: figure out how to know if the user has admin status and use the moderatorPW
         // in that case
-        const clientURL = api.administration.join(user.name, meetingId, moderatorPW, {
+        const clientURL = api.administration.join(user.name, meetingId, moderatorPW, Object.assign(joinParams, {
             userID: user.id,
             joinViaHtml5: true,
-            "userdata-bbb_auto_join_audio": "true",
-            "userdata-bbb_listen_only_mode": "false",
-            "userdata-bbb_mirror_own_webcam": "true",
-            "userdata-bbb_skip_check_audio": "true",
-            "userdata-bbb_skip_video_preview": "true",
-            "userdata-bbb_auto_share_webcam": "true",
-            "userdata-bbb_auto_swap_layout": "true",
-            "userdata-bbb_show_participants_on_login": "false",
-            "userdata-bbb_show_public_chat_on_login": "true",
-            "userdata-bbb_custom_style": ":root{--loader-bg:#f00;}.overlay--1aTlbi{background-color:#f00!important;}body{background-color:#f00!important;}"
-        });
+        }));
 
         const bbbMeetingClientURLMessage = new BBBMeetingClientURLMessage();
         bbbMeetingClientURLMessage.setMeetingid(meetingId);

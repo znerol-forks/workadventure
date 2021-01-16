@@ -69,6 +69,7 @@ message QueryJitsiJwtMessage {
 
 message JoinBBBMeetingMessage {
   string meetingId = 1;
+  map<string, string> userdata = 2;
 }
 
 message ClientToServerMessage {

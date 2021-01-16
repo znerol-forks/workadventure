@@ -647,7 +647,7 @@ export class GameScene extends ResizableScene implements CenterListener {
                 layoutManager.removeActionButton('bbbMeeting', this.userInputManager);
                 this.stopBBBMeeting();
             } else {
-                this.connection.emitJoinBBBMeeting(newValue as string);
+                this.connection.emitJoinBBBMeeting(newValue as string, allProps);
             }
 	});
         this.gameMap.onPropertyChange('jitsiRoom', (newValue, oldValue, allProps) => {

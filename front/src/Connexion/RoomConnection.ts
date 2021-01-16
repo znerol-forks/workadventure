@@ -584,9 +584,16 @@ export class RoomConnection implements RoomConnection {
         });
     }
 
-    public emitJoinBBBMeeting(meetingId: string): void {
+    public emitJoinBBBMeeting(meetingId: string, props: Map<string, string | number | boolean>): void {
         const joinBBBMeetingMessage = new JoinBBBMeetingMessage();
         joinBBBMeetingMessage.setMeetingid(meetingId);
+
+        const userdataMap = joinBBBMeetingMessage.getUserdataMap();
+        props.forEach((value, key) => {
+            if (key.startsWith('userdata-bbb_')) {
+                userdataMap.set(key, value.toString());
+            }
+        });
 
         const clientToServerMessage = new ClientToServerMessage();
         clientToServerMessage.setJoinbbbmeetingmessage(joinBBBMeetingMessage);
