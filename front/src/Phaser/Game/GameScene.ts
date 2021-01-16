@@ -1237,8 +1237,9 @@ export class GameScene extends ResizableScene implements CenterListener {
     public startBBBMeeting(meetingId: string, clientURL: string): void {
         this.connection.setSilent(true);
         mediaManager.hideGameOverlay();
+        const clientOrigin = (new URL(clientURL)).origin;
         coWebsiteManager.loadCoWebsite(clientURL, iframe => {
-            iframe.allow = `microphone ${clientURL}; camera ${clientURL}`;
+            iframe.allow = `microphone ${clientOrigin}; camera ${clientOrigin}`;
         });
     }
 
