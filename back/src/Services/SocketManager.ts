@@ -644,8 +644,7 @@ export class SocketManager {
 
         // XXX: figure out how to know if the user has admin status and use the moderatorPW
         // in that case
-        const joinResponse = await Bbb.http(api.administration.join(user.name, meetingId, moderatorPW, {
-            redirect: false,
+        const clientURL = api.administration.join(user.name, meetingId, moderatorPW, {
             userID: user.id,
             joinViaHtml5: true,
             "userdata-bbb_auto_join_audio": "true",
@@ -658,8 +657,7 @@ export class SocketManager {
             "userdata-bbb_show_participants_on_login": "false",
             "userdata-bbb_show_public_chat_on_login": "true",
             "userdata-bbb_custom_style": ":root{--loader-bg:#f00;}.overlay--1aTlbi{background-color:#f00!important;}body{background-color:#f00!important;}"
-        }));
-        const clientURL = joinResponse.url;
+        });
 
         const bbbMeetingClientURLMessage = new BBBMeetingClientURLMessage();
         bbbMeetingClientURLMessage.setMeetingid(meetingId);
